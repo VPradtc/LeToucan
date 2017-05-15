@@ -20,7 +20,7 @@ set -uC
     Pattern[10]=░░░░░░has░░░░░░░░▀▄▄███████████████░
     Pattern[11]=░░░░░arrived░░░░░░░░░░░░█▀██████░░░░
 
-    Index=10;
+    Index=11;
 
     # for (( index=${#Pattern[@]}-1 ; index>=0 ; index-- )) ; do
     #     Line="${Pattern[index]}"
@@ -38,7 +38,7 @@ set -uC
     GetCurrentItem(){
         CurrentItem=${Pattern[Index]}
         if [[ "$Index" == 1 ]]; then
-            Index=10
+            Index=11
             else
             Index=$(expr $Index - 1)
         fi
@@ -56,8 +56,10 @@ set -uC
 
     RebuildRegularChangeset() {
         changesetSHA=$1;
-        git cherry-pick $changesetSHA --allow-empty
-        git reset --soft HEAD^1
+
+        currentSHA=$(git rev-parse HEAD)
+
+        git cherry-pick $changesetSHA --allow-empty  && git reset --soft HEAD^1 || git reset --hard $changesetSHA; git reset --soft $currentSHA;
 
         GetCurrentItem;
         comment=$CurrentItem
@@ -72,15 +74,11 @@ set -uC
         GetCurrentItem;
         comment=$CurrentItem
 
-        echo "1111"
-        for K in "${!ChangesetMap[@]}"; do echo $K --- ${ChangesetMap[$K]}; done
-        echo "00000"
-
         oldParent1=${ChangesetMap[$parent1]}
         oldParent2=${ChangesetMap[$parent2]}
 
         git checkout $oldParent1
-        git merge ${ChangesetMap[$parent2]} --no-ff -m "$comment"--allow-empty
+        git merge ${ChangesetMap[$parent2]} --no-ff -m "$comment" || git reset --hard $parent1; git reset --soft $oldParent1; git commit -m "$comment" --allow-empty;
     }
 
     RebuildChangeset() {
@@ -90,11 +88,13 @@ set -uC
         if [[ "$LastSHA" == '' ]]; then
             RebuildRootChangeset $changesetSHA
         else
-            git checkout ${parents[1]}
-
             if [[ "${#parents[@]}" == 3 ]]; then
                 RebuildMergeChangeset $changesetSHA ${parents[1]} ${parents[2]}
             else
+                parent1=${parents[1]}
+                oldParent1=${ChangesetMap[$parent1]}
+                git checkout $oldParent1
+
                 RebuildRegularChangeset $changesetSHA
             fi
         fi
