@@ -87,10 +87,11 @@ set -uC
         changesetSHA=$1
 
         parents=(`git rev-list --parents -n 1 $changesetSHA`)
-
         if [[ "$LastSHA" == '' ]]; then
             RebuildRootChangeset $changesetSHA
         else
+            git checkout ${parents[1]}
+
             if [[ "${#parents[@]}" == 3 ]]; then
                 RebuildMergeChangeset $changesetSHA ${parents[1]} ${parents[2]}
             else
