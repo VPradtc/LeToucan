@@ -22,14 +22,6 @@ set -uC
 
     Index=11;
 
-    # for (( index=${#Pattern[@]}-1 ; index>=0 ; index-- )) ; do
-    #     Line="${Pattern[index]}"
-    #     git branch -f ${Line}
-    #     git checkout ${Line}
-    #     git commit --allow-empty -m "${Line}" --author "LE TOUCAN <le.toucan@le.toucan>"
-    # done
-
-
     LastSHA=''
     CurrentItem=''
 
@@ -51,7 +43,7 @@ set -uC
 
         GetCurrentItem;
         comment=$CurrentItem
-        git commit --amend -m "$comment" || git commit -m "$comment" --allow-empty
+        git commit -m "$comment" --allow-empty --author "LE TOUCAN <le.toucan@le.toucan>"
     }
 
     RebuildRegularChangeset() {
@@ -63,7 +55,7 @@ set -uC
 
         GetCurrentItem;
         comment=$CurrentItem
-        git commit -m "$comment" || git commit -m "$comment" --allow-empty
+        git commit -m "$comment" --allow-empty --author "LE TOUCAN <le.toucan@le.toucan>"
     }
 
     RebuildMergeChangeset() {
@@ -78,14 +70,17 @@ set -uC
         oldParent2=${ChangesetMap[$parent2]}
 
         git checkout $oldParent1
-        git merge ${ChangesetMap[$parent2]} --no-ff -m "$comment" || git reset --hard $parent1; git reset --soft $oldParent1; git commit -m "$comment" --allow-empty;
+        git reset --hard $changesetSHA;
+        git reset --soft $oldParent1;
+        git reset --hard $(git commit-tree $(git write-tree) -p HEAD -p $oldParent2 -m "$comment")
+        git commit --amend --no-edit --author="LE TOUCAN <le.toucan@le.toucan>"
     }
 
     RebuildChangeset() {
         changesetSHA=$1
 
         parents=(`git rev-list --parents -n 1 $changesetSHA`)
-        if [[ "$LastSHA" == '' ]]; then
+        if [[ "${#parents[@]}" == 1 ]]; then
             RebuildRootChangeset $changesetSHA
         else
             if [[ "${#parents[@]}" == 3 ]]; then
@@ -117,4 +112,3 @@ set -uC
 ) 2>&1 | tee -a "${ResFile}"
 ExitCode=$?
 exit ${ExitCode}
-
