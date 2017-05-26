@@ -105,6 +105,12 @@ set -uC
     for (( changesetIndex=${#DefaultOrderChangesets[@]}-1 ; changesetIndex>=0 ; changesetIndex-- )) ; do
         RebuildChangeset ${DefaultOrderChangesets[changesetIndex]}
     done
+
+    git branch | (
+        BranchName=$1
+        OldChangeset=$(git rev-parse $BranchName)
+        git branch -f $BranchName ${ChangesetMap[$parent1]}
+    )
   )
     ExitCode=$?
     (exit ${ExitCode}) && echo 'Success' || echo "Error / ExitCode = $?"
